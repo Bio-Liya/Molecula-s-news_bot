@@ -1,5 +1,5 @@
 import unittest
-from journal_metrics import match_journal, normalize_issn
+from journal_metrics import match_journal, normalize_issn, parse_export, jif_for
 from digest import select, metrics_line
 import datetime as dt
 
@@ -37,3 +37,22 @@ class MetricsTests(unittest.TestCase):
         self.assertIn('JIF unavailable', line)
         self.assertIn('SCImago 2024: Q2', line)
         self.assertEqual(normalize_issn('1234-567x'), '1234567X')
+
+    def test_official_csv_parser_and_invalid_response(self):
+        text = ('Title;Type;Issn;SJR Best Quartile;Categories\n'
+                'Test;journal;1234-567X;Q1;"Genetics (Q2); Economics (Q1)"\n')
+        rows = parse_export(text, min_records=1)
+        self.assertEqual(rows[0]['issns'], ['1234567X'])
+        self.assertEqual(rows[0]['categories'][0]['quartile'], 'Q2')
+        with self.assertRaises(ValueError):
+            parse_export('<html>Forbidden</html>')
+        with self.assertRaises(ValueError):
+            parse_export(text)
+
+    def test_known_jif_and_missing_value(self):
+        paper = {'journalInfo': {'journal': {'essn': '2045-2322'}}}
+        jif = jif_for(paper)
+        self.assertEqual(jif['year'], 2025)
+        self.assertEqual(jif['value'], '4.9')
+        self.assertIn('nature.com', jif['source'])
+        self.assertIsNone(jif_for({}))

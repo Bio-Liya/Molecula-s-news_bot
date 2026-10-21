@@ -17,7 +17,7 @@ def normalize_issn(value):
     return value if len(value) == 8 else None
 
 
-def parse_export(text):
+def parse_export(text, min_records=1000):
     rows = csv.DictReader(io.StringIO(text.lstrip('\ufeff')), delimiter=';')
     required = {'Title', 'Issn', 'SJR Best Quartile', 'Categories'}
     if not required.issubset(rows.fieldnames or []):
@@ -35,7 +35,7 @@ def parse_export(text):
             continue
         entries.append({'title': row['Title'], 'issns': issns, 'year': SJR_YEAR,
                         'categories': categories, 'source': SJR_URL})
-    if len(entries) < 1000:
+    if len(entries) < min_records:
         raise ValueError('SCImago export is incomplete')
     return entries
 
@@ -87,4 +87,11 @@ def jif_for(paper):
 
 
 if __name__ == '__main__':
-    download()
+    import sys
+    if len(sys.argv) == 2:
+        text = Path(sys.argv[1]).read_text(encoding='utf-8-sig')
+        entries = parse_export(text)
+        SNAPSHOT.write_text(json.dumps(entries, ensure_ascii=False), encoding='utf-8')
+        print(f'Imported {len(entries)} journals, SCImago {SJR_YEAR}.')
+    else:
+        download()
