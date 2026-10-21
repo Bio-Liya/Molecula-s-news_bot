@@ -1,6 +1,6 @@
 import datetime as dt
 import unittest
-from digest import select, render, summarize, TOPICS
+from digest import select, render, summarize, TOPICS, PRIORITY_TIERS
 
 
 class DigestTests(unittest.TestCase):
@@ -49,6 +49,33 @@ class DigestTests(unittest.TestCase):
         visible = html.unescape(re.sub('<[^>]+>', '', text))
         self.assertLessEqual(len(visible.encode('utf-16-le')) // 2, 4096)
         self.assertEqual(text.count('<b>Abstract highlights:</b>'), 5)
+
+    def test_priority_order_is_stable_across_days(self):
+        expected = ['Liquid biopsy', 'Medical genetics', 'mRNA vaccines',
+                    'ML in biology', 'Bioinformatics']
+        for day in (22, 23):
+            items = select(lambda topic, *args: [{'doi': '10.1/' + topic, 'title': topic}],
+                           [], dt.date(2026, 10, day))
+            self.assertEqual([topic for topic, _, _ in items], expected)
+        configured = [topic for tier in PRIORITY_TIERS for topic in tier]
+        self.assertEqual(len(configured), len(set(configured)))
+        self.assertEqual(set(configured), set(TOPICS))
+
+    def test_missing_high_priority_topics_fall_through(self):
+        available = {'ML in biology', 'Gene therapy', 'RNA-seq', 'Epigenetics', 'Molecular cloning'}
+        def fetch(topic, days, today):
+            return [{'doi': '10.1/' + topic, 'title': topic}] if topic in available else []
+        items = select(fetch, [], dt.date(2026, 10, 22))
+        self.assertEqual([topic for topic, _, _ in items],
+                         ['ML in biology', 'Gene therapy', 'RNA-seq', 'Epigenetics', 'Molecular cloning'])
+
+    def test_trend_watch_keeps_priority_order(self):
+        def fetch(topic, days, today):
+            return [] if days == 3 else [{'doi': '10.1/' + topic, 'title': topic}]
+        items = select(fetch, [], dt.date(2026, 10, 22))
+        self.assertEqual([topic for topic, _, _ in items],
+                         ['Liquid biopsy', 'Medical genetics', 'mRNA vaccines', 'ML in biology', 'Bioinformatics'])
+        self.assertTrue(all(label == 'Trend watch' for _, label, _ in items))
 
 
 if __name__ == '__main__':

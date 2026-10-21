@@ -23,6 +23,11 @@ TOPICS = {
     'Molecular cloning': '"molecular cloning" OR "Gibson assembly" OR "Golden Gate assembly" OR "DNA assembly" OR "recombinational cloning"',
     'mRNA vaccines': '"mRNA vaccine" OR "mRNA vaccines"',
 }
+PRIORITY_TIERS = (
+    ('Liquid biopsy', 'Medical genetics', 'mRNA vaccines', 'ML in biology'),
+    ('Bioinformatics', 'Gene therapy', 'Sequencing', 'RNA-seq'),
+    ('Epigenetics', 'CRISPR-Cas', 'Molecular cloning'),
+)
 STATE = Path('state.json')
 
 
@@ -55,9 +60,7 @@ def key(paper):
 
 def select(fetch, seen, today, journal_index=None):
     chosen, used = [], set(seen)
-    topics = list(TOPICS)
-    offset = today.toordinal() % len(topics)
-    topics = topics[offset:] + topics[:offset]
+    topics = [topic for tier in PRIORITY_TIERS for topic in tier]
     for days, label in ((3, 'Recent research'), (90, 'Trend watch')):
         for topic in topics:
             for paper in fetch(topic, days, today):

@@ -5,8 +5,18 @@ liquid biopsy, epigenetics, gene therapy, mRNA vaccines, RNA-seq,
 bioinformatics, ML in biology (machine learning, deep learning and foundation
 models for genomics, transcriptomics, proteomics, protein design and drug discovery),
 CRISPR-Cas and molecular cloning technologies (Gibson Assembly,
-Golden Gate and DNA assembly). Topic priority rotates daily; five papers cannot
-cover all eleven topics in every edition.
+Golden Gate and DNA assembly). Five papers cannot cover all eleven topics in every edition.
+
+Topics are searched in a fixed priority order:
+1. Liquid biopsy, medical genetics, mRNA vaccines, ML in biology.
+2. Bioinformatics, gene therapy, sequencing, RNA-seq.
+3. Epigenetics, CRISPR-Cas, molecular cloning.
+
+Within each tier the listed order is preserved. Each search pass takes at most
+one eligible paper per topic. Fresh research is searched across all tiers first;
+Trend watch uses the same priorities when fewer than three recent items qualify.
+Lower-priority topics fill remaining places when earlier topics lack eligible,
+unseen papers.
 
 ## Activate
 
@@ -24,7 +34,7 @@ cover all eleven topics in every edition.
 ## Content and cost
 
 Europe PMC's free API supplies English PubMed-indexed papers with DOIs.
-Up to five papers, rotating topic priority daily. First look back three days;
+Up to five papers, with fixed topic priorities. First look back three days;
 if fewer than three items qualify, fill from the past 90 days, labeled Trend
 watch. Reviews, meta-analyses, editorials and comments are excluded. Publication
 type metadata is imperfect, so this filter cannot guarantee study design.
