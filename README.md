@@ -2,9 +2,11 @@
 
 Free English Telegram literature digest covering medical genetics, sequencing,
 liquid biopsy, epigenetics, gene therapy, mRNA vaccines, RNA-seq,
-bioinformatics, CRISPR-Cas and molecular cloning technologies (Gibson Assembly,
+bioinformatics, ML in biology (machine learning, deep learning and foundation
+models for genomics, transcriptomics, proteomics, protein design and drug discovery),
+CRISPR-Cas and molecular cloning technologies (Gibson Assembly,
 Golden Gate and DNA assembly). Topic priority rotates daily; five papers cannot
-cover all ten topics in every edition.
+cover all eleven topics in every edition.
 
 ## Activate
 
