@@ -40,6 +40,8 @@ class DigestTests(unittest.TestCase):
         paper = {'doi': '10.1/test', 'title': 'Title ' * 200,
                  'journalTitle': 'Journal ' * 100,
                  'abstractText': 'Background sentence. ' + 'Result word ' * 300 + '.'}
+        paper['metrics'] = {'source': 'https://www.scimagojr.com/', 'year': 2024,
+                            'quartile': 'Q2', 'category': 'Genetics (clinical)'}
         self.assertLessEqual(len(summarize(paper)), 320)
         text = render([('Medical genetics', 'Recent research', paper)] * 5, dt.date(2026, 10, 22))
         visible = html.unescape(re.sub('<[^>]+>', '', text))

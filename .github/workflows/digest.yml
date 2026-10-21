@@ -26,6 +26,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
+      - name: Download official SCImago journal metrics
+        run: python journal_metrics.py
       - name: Build or send digest
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
