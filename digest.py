@@ -70,16 +70,42 @@ def select(fetch, seen, today):
     return chosen
 
 
+
+def plain_text(value):
+    value = re.sub(r'</?(?:p|h[1-6]|div|br)\b[^>]*>', ' ', value or '', flags=re.I)
+    return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', value))).strip()
+
+
+def shorten(text, limit):
+    if len(text) <= limit:
+        return text
+    return text[:limit - 1].rsplit(' ', 1)[0] + '…'
+
+
+def summarize(paper):
+    """Extract evidence sentences from the abstract; never invent missing facts."""
+    abstract = plain_text(paper.get('abstractText'))
+    if not abstract:
+        return 'Abstract unavailable; open the original paper for details.'
+    match = re.search(r'\b(?:RESULTS?|FINDINGS|CONCLUSIONS?|INTERPRETATION)\s*:', abstract, re.I)
+    evidence = abstract[match.end():].strip() if match else abstract
+    evidence = re.sub(r'\b(?:RESULTS?|FINDINGS|CONCLUSIONS?|INTERPRETATION)\s*:\s*', '', evidence, flags=re.I)
+    sentences = re.split(r'(?<=[.!?])\s+(?=[A-Z])', evidence)
+    selected = sentences[:2] if match else ([sentences[0], sentences[-1]] if len(sentences) > 1 else sentences)
+    return shorten(' '.join(selected), 320)
+
+
 def render(items, today):
     lines = [f'<b>Molecula | {today.isoformat()}</b>',
              'Research digest · English · primary papers', '']
     if not items:
         lines.append('No new eligible primary papers found in the past 90 days. No older items repeated.')
     for topic, label, paper in items:
-        title = re.sub('<[^>]+>', '', html.unescape(paper['title']))[:320]
+        title = shorten(plain_text(paper['title']), 180)
         doi = urllib.parse.quote(paper['doi'], safe='/')
         lines.extend([f'<b>{html.escape(topic)} · {label}</b>', html.escape(title),
-                      html.escape(f"{paper.get('journalTitle', 'Journal')} · {paper.get('firstPublicationDate', paper.get('pubYear', ''))}"),
+                      html.escape(shorten(plain_text(paper.get('journalTitle') or paper.get('journalInfo', {}).get('journal', {}).get('title') or 'Journal'), 80) + ' · ' + str(paper.get('firstPublicationDate', paper.get('pubYear', '')))[:10]),
+                      '<b>Abstract highlights:</b> ' + html.escape(summarize(paper)),
                       f'<a href="https://doi.org/{doi}">Original paper</a>', ''])
     lines.append('Trend watch uses recent papers (≤90 days), not a measured trend ranking. Research findings are not clinical advice.')
     return '\n'.join(lines)

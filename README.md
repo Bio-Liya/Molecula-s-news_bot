@@ -7,11 +7,11 @@ liquid biopsy, epigenetics, gene therapy and mRNA vaccines.
 
 1. Create a Telegram bot with @BotFather. Open its private chat and press Start,
    or add it to your channel with permission to post.
-2. In Settings в†’ Secrets and variables в†’ Actions add `TELEGRAM_BOT_TOKEN`
+2. In Settings → Secrets and variables → Actions add `TELEGRAM_BOT_TOKEN`
    and `TELEGRAM_CHAT_ID` (numeric private chat ID or `@channelusername`).
    Never commit tokens. For a private chat, obtain its ID from Telegram's
    Bot API getUpdates after messaging the bot; keep the token out of shared logs.
-3. Under Actions в†’ Daily Telegram digest в†’ Run workflow, leave `send` false
+3. Under Actions → Daily Telegram digest → Run workflow, leave `send` false
    for a preview. Then run with `send` true for a delivery test.
 4. Automatic delivery is scheduled daily at 06:07 UTC / 09:07 Moscow.
    GitHub can delay scheduled jobs; this is not an exact-time scheduler.
@@ -24,7 +24,12 @@ if fewer than three items qualify, fill from the past 90 days, labeled Trend
 watch. Reviews, meta-analyses, editorials and comments are excluded. Publication
 type metadata is imperfect, so this filter cannot guarantee study design.
 Each item has the original title, journal/date and a DOI link to the publisher.
-These are bibliographic highlights, not AI-written summaries. Trend watch is
+Each item includes a short English extractive summary (Abstract highlights), up to
+320 characters, taken from the authors' abstract supplied by Europe PMC. Structured
+abstracts prioritize results/conclusions; unstructured abstracts use the opening
+and closing sentences. Long extracts are shortened with an ellipsis. This is an
+automatic excerpt, not a full-text analysis or an AI rewrite. Missing abstracts
+are explicitly marked; no claims are inferred from titles. Trend watch is
 recent research discovery, not a statistically measured trend ranking.
 No fabricated news, no repeat DOIs while retained in the last 2,000-item history.
 If all sources fail the job fails instead of reporting a quiet day.
