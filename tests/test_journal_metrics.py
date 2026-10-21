@@ -56,3 +56,17 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(jif['value'], '4.9')
         self.assertIn('nature.com', jif['source'])
         self.assertIsNone(jif_for({}))
+
+    def test_imported_snapshot_has_expected_year_and_known_journals(self):
+        from journal_metrics import load_index
+        index = load_index()
+        self.assertGreater(len(index), 29000)
+        record = match_journal({'journalInfo': {'journal': {'essn': '2045-2322'}}}, index)
+        self.assertIsNotNone(record)
+        self.assertEqual(record['year'], 2024)
+        self.assertIn(record['quartile'], ('Q1', 'Q2'))
+
+    def test_new_topics_are_configured(self):
+        from digest import TOPICS
+        for topic in ('RNA-seq', 'Bioinformatics', 'CRISPR-Cas', 'Molecular cloning'):
+            self.assertIn(topic, TOPICS)

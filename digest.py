@@ -16,6 +16,10 @@ TOPICS = {
     'Liquid biopsy': '"liquid biopsy" OR "circulating tumor DNA"',
     'Epigenetics': '"epigenetic therapy" OR "DNA methylation"',
     'Gene therapy': '"gene therapy" OR "genome editing"',
+    'RNA-seq': '"RNA-seq" OR "RNA sequencing" OR "single cell RNA sequencing" OR "spatial transcriptomics"',
+    'Bioinformatics': '"bioinformatics" OR "computational genomics" OR "genomic data analysis"',
+    'CRISPR-Cas': '"CRISPR" OR "Cas9" OR "Cas12" OR "Cas13" OR "base editing" OR "prime editing"',
+    'Molecular cloning': '"molecular cloning" OR "Gibson assembly" OR "Golden Gate assembly" OR "DNA assembly" OR "recombinational cloning"',
     'mRNA vaccines': '"mRNA vaccine" OR "mRNA vaccines"',
 }
 STATE = Path('state.json')

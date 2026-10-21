@@ -28,7 +28,7 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - name: Verify imported SCImago snapshot
         run: |
-          if [ ! -f scimago.json ]; then
+          if [ ! -f scimago.json.gz ]; then
             echo 'Import official SCImago data first; see README.'
             exit 1
           fi

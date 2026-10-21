@@ -1,5 +1,6 @@
 """Journal metrics: official SCImago export; independently sourced JIF values."""
 import csv
+import gzip
 import io
 import json
 from pathlib import Path
@@ -9,7 +10,7 @@ import urllib.request
 # Explicit data year, never silently interpret the export as the current year.
 SJR_YEAR = 2024
 SJR_URL = f'https://www.scimagojr.com/journalrank.php?year={SJR_YEAR}&out=xls'
-SNAPSHOT = Path('scimago.json')
+SNAPSHOT = Path('scimago.json.gz')
 
 
 def normalize_issn(value):
@@ -44,12 +45,12 @@ def download():
     req = urllib.request.Request(SJR_URL, headers={'User-Agent': 'Mozilla/5.0'})
     with urllib.request.urlopen(req, timeout=60) as response:
         entries = parse_export(response.read().decode('utf-8-sig'))
-    SNAPSHOT.write_text(json.dumps(entries, ensure_ascii=False), encoding='utf-8')
+    SNAPSHOT.write_bytes(gzip.compress(json.dumps(entries, ensure_ascii=False).encode('utf-8'), mtime=0))
     print(f'Saved {len(entries)} journal records, SCImago {SJR_YEAR}.')
 
 
 def load_index():
-    entries = json.loads(SNAPSHOT.read_text(encoding='utf-8'))
+    entries = json.loads(gzip.decompress(SNAPSHOT.read_bytes()).decode('utf-8'))
     index = {}
     for record in entries:
         for issn in record['issns']:
@@ -70,7 +71,8 @@ def match_journal(paper, index):
     # Use the best quartile among explicitly relevant categories.
     relevant = [c for c in record['categories'] if re.search(
         r'genetic|molecular|medicine|oncology|cancer|immunolog|biotech|biochem|'
-        r'cell biology|drug discovery|pharmacolog|multidisciplinary', c['name'], re.I)
+        r'cell biology|drug discovery|pharmacolog|multidisciplinary|bioinformatic|'
+        r'computational|computer science applications|biological', c['name'], re.I)
         and c['quartile'] in ('Q1', 'Q2')]
     if not relevant:
         return None
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         text = Path(sys.argv[1]).read_text(encoding='utf-8-sig')
         entries = parse_export(text)
-        SNAPSHOT.write_text(json.dumps(entries, ensure_ascii=False), encoding='utf-8')
+        SNAPSHOT.write_bytes(gzip.compress(json.dumps(entries, ensure_ascii=False).encode('utf-8'), mtime=0))
         print(f'Imported {len(entries)} journals, SCImago {SJR_YEAR}.')
     else:
         download()

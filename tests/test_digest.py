@@ -1,6 +1,6 @@
 import datetime as dt
 import unittest
-from digest import select, render, summarize
+from digest import select, render, summarize, TOPICS
 
 
 class DigestTests(unittest.TestCase):
@@ -14,7 +14,9 @@ class DigestTests(unittest.TestCase):
         self.assertTrue(all(label == 'Trend watch' for _, label, _ in items))
         self.assertIn(90, calls)
         seen = [p['doi'].lower() for _, _, p in items]
-        self.assertEqual(len(select(fetch, seen, dt.date(2026, 10, 22))), 1)
+        self.assertEqual(len(select(fetch, seen, dt.date(2026, 10, 22))), 5)
+        all_seen = [('10.1/' + topic).lower() for topic in TOPICS]
+        self.assertEqual(select(fetch, all_seen, dt.date(2026, 10, 22)), [])
 
     def test_escape_and_link(self):
         text = render([('Gene therapy', 'Recent research', {'title': 'A & B <i>test</i>',
