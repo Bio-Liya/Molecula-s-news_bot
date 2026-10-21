@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import urllib.parse
 import urllib.request
+from journal_metrics import load_index, match_journal, jif_for
 
 TOPICS = {
     'Medical genetics': '"medical genetics" OR "genomic medicine" OR "rare disease"',
@@ -15,6 +16,10 @@ TOPICS = {
     'Liquid biopsy': '"liquid biopsy" OR "circulating tumor DNA"',
     'Epigenetics': '"epigenetic therapy" OR "DNA methylation"',
     'Gene therapy': '"gene therapy" OR "genome editing"',
+    'RNA-seq': '"RNA-seq" OR "RNA sequencing" OR "single cell RNA sequencing" OR "spatial transcriptomics"',
+    'Bioinformatics': '"bioinformatics" OR "computational genomics" OR "genomic data analysis"',
+    'CRISPR-Cas': '"CRISPR" OR "Cas9" OR "Cas12" OR "Cas13" OR "base editing" OR "prime editing"',
+    'Molecular cloning': '"molecular cloning" OR "Gibson assembly" OR "Golden Gate assembly" OR "DNA assembly" OR "recombinational cloning"',
     'mRNA vaccines': '"mRNA vaccine" OR "mRNA vaccines"',
 }
 STATE = Path('state.json')
@@ -47,7 +52,7 @@ def key(paper):
     return paper['doi'].lower()
 
 
-def select(fetch, seen, today):
+def select(fetch, seen, today, journal_index=None):
     chosen, used = [], set(seen)
     topics = list(TOPICS)
     offset = today.toordinal() % len(topics)
@@ -57,6 +62,11 @@ def select(fetch, seen, today):
             for paper in fetch(topic, days, today):
                 if not paper.get('doi') or not paper.get('title'):
                     continue
+                if journal_index is not None:
+                    metrics = match_journal(paper, journal_index)
+                    if metrics is None:
+                        continue
+                    paper = {**paper, 'metrics': metrics, 'jif': jif_for(paper)}
                 identity = key(paper)
                 if identity in used:
                     continue
@@ -95,17 +105,33 @@ def summarize(paper):
     return shorten(' '.join(selected), 320)
 
 
+def metrics_line(paper):
+    metrics = paper.get('metrics')
+    if not metrics:
+        return ''
+    source = html.escape(metrics['source'], quote=True)
+    line = f'<a href="{source}">SCImago {metrics["year"]}: {metrics["quartile"]}</a>'
+    line += ' · ' + html.escape(shorten(metrics['category'], 35))
+    jif = paper.get('jif')
+    if jif:
+        line += f' · <a href="{html.escape(jif["source"], quote=True)}">JIF {jif["year"]}: {html.escape(str(jif["value"]))}</a>'
+    else:
+        line += ' · JIF unavailable'
+    return line
+
+
 def render(items, today):
     lines = [f'<b>Molecula | {today.isoformat()}</b>',
-             'Research digest · English · primary papers', '']
+             'Research digest · English · primary papers · SCImago Q1–Q2', '']
     if not items:
-        lines.append('No new eligible primary papers found in the past 90 days. No older items repeated.')
+        lines.append('No unseen eligible SCImago Q1–Q2 papers found in the past 90 days. No older items repeated.')
     for topic, label, paper in items:
         title = shorten(plain_text(paper['title']), 180)
         doi = urllib.parse.quote(paper['doi'], safe='/')
         lines.extend([f'<b>{html.escape(topic)} · {label}</b>', html.escape(title),
                       html.escape(shorten(plain_text(paper.get('journalTitle') or paper.get('journalInfo', {}).get('journal', {}).get('title') or 'Journal'), 80) + ' · ' + str(paper.get('firstPublicationDate', paper.get('pubYear', '')))[:10]),
-                      '<b>Abstract highlights:</b> ' + html.escape(summarize(paper)),
+                      metrics_line(paper),
+                      '<b>Abstract highlights:</b> ' + html.escape(shorten(summarize(paper), 260)),
                       f'<a href="https://doi.org/{doi}">Original paper</a>', ''])
     lines.append('Trend watch uses recent papers (≤90 days), not a measured trend ranking. Research findings are not clinical advice.')
     return '\n'.join(lines)
@@ -120,7 +146,7 @@ def main():
     if state['last_date'] == str(today) and not args.dry_run:
         print('Already sent today.')
         return
-    items = select(search, state['seen'], today)
+    items = select(search, state['seen'], today, load_index())
     message = render(items, today)
     if args.dry_run:
         print(message)

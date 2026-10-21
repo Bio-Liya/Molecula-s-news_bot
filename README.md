@@ -1,7 +1,10 @@
 # Molecula's news bot
 
 Free English Telegram literature digest covering medical genetics, sequencing,
-liquid biopsy, epigenetics, gene therapy and mRNA vaccines.
+liquid biopsy, epigenetics, gene therapy, mRNA vaccines, RNA-seq,
+bioinformatics, CRISPR-Cas and molecular cloning technologies (Gibson Assembly,
+Golden Gate and DNA assembly). Topic priority rotates daily; five papers cannot
+cover all ten topics in every edition.
 
 ## Activate
 
@@ -25,7 +28,7 @@ watch. Reviews, meta-analyses, editorials and comments are excluded. Publication
 type metadata is imperfect, so this filter cannot guarantee study design.
 Each item has the original title, journal/date and a DOI link to the publisher.
 Each item includes a short English extractive summary (Abstract highlights), up to
-320 characters, taken from the authors' abstract supplied by Europe PMC. Structured
+260 displayed characters, taken from the authors' abstract supplied by Europe PMC. Structured
 abstracts prioritize results/conclusions; unstructured abstracts use the opening
 and closing sentences. Long extracts are shortened with an ellipsis. This is an
 automatic excerpt, not a full-text analysis or an AI rewrite. Missing abstracts
@@ -59,3 +62,38 @@ python digest.py --dry-run
 Sources: https://europepmc.org/RestfulWebService
 and https://docs.github.com/en/billing/concepts/product-billing/github-actions
 
+
+## SCImago Q1–Q2 filter
+
+The digest implements a strict ISSN match and admits Q1/Q2 in
+a relevant subject category, including multidisciplinary journals. Unknown,
+ambiguous, Q3/Q4, or unrelated-category matches are excluded, also in Trend watch.
+The chosen category, quartile and data year appear beside each article.
+This is a journal-level filter, not an assessment of an individual study.
+
+SCImago's official export rejects automated downloads from Actions (HTTP 403).
+The daily workflow uses the checked-in validated snapshot scimago.json.gz.
+Imported 29,381 journal records from the user-supplied 2024 official CSV on
+2026-10-22. Source CSV SHA-256:
+5054289ee269d611a63322bcc71226e8430b43e8535a1fd4577b630af5a5bd18.
+Every record retains its source URL, year and category quartiles.
+
+To import the official 2024 SCImago export:
+1. Open https://www.scimagojr.com/journalrank.php?year=2024 and use Download data.
+2. Keep the file unchanged; it is a semicolon-delimited CSV despite the xls URL.
+3. Run: python journal_metrics.py path/to/scimagojr_2024.csv
+4. Commit scimago.json.gz and run the workflow in preview mode before enabling.
+The importer validates the schema and at least 1,000 journals. Only explicit
+category quartiles are used. The year is pinned to 2024; importing another year's
+data requires updating SJR_YEAR and the snapshot together. Check SCImago annually
+and refresh from the newest available official export; never relabel an older
+snapshot as current. No runtime dependency on SCImago or a paid service.
+
+Journal Impact Factor (JIF) is separate from SJR and Cites/Doc. Public journal
+pages sometimes disclose it; Clarivate's complete Journals API requires a
+subscription. impact_factors.json stores verified values with ISSNs, metric year,
+publisher source URL and verification date. Coverage is currently limited to
+Scientific Reports; other journals explicitly show JIF unavailable, meaning no
+verified value in our dataset, not that the journal has no JIF. Add entries only
+after verifying a publisher or Clarivate source. No inferred or fabricated JIFs.
+Source: https://developer.clarivate.com/apis/wos-journal
