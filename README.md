@@ -38,9 +38,16 @@ Up to five papers, with fixed topic priorities. First look back three days;
 if fewer than three items qualify, fill from the past 90 days, labeled Trend
 watch. Reviews, meta-analyses, editorials and comments are excluded. Publication
 type metadata is imperfect, so this filter cannot guarantee study design.
-Each item has the original title, journal/date and a DOI link to the publisher.
+The visible layout is Research digest DD.MM.YYYY, followed by each article's
+title, abstract summary and one line: Publication link, JIF (only when verified),
+and author affiliation countries. Topic labels, language, quartiles, journal
+metadata and boilerplate are not shown; all selection filters still apply.
+Countries refer to institutional addresses, not nationality. Explicit country
+names are extracted from Europe PMC author affiliations, normalized and deduplicated.
+Unrecognized or missing addresses are not guessed; detected countries may be
+incomplete. Countries not reported is shown when none can be identified.
 Each item includes a short English extractive summary (Abstract highlights), up to
-260 displayed characters, taken from the authors' abstract supplied by Europe PMC. Structured
+320 displayed characters, taken from the authors' abstract supplied by Europe PMC. Structured
 abstracts prioritize results/conclusions; unstructured abstracts use the opening
 and closing sentences. Long extracts are shortened with an ellipsis. This is an
 automatic excerpt, not a full-text analysis or an AI rewrite. Missing abstracts
@@ -83,7 +90,8 @@ and https://docs.github.com/en/billing/concepts/product-billing/github-actions
 The digest implements a strict ISSN match and admits Q1/Q2 in
 a relevant subject category, including multidisciplinary journals. Unknown,
 ambiguous, Q3/Q4, or unrelated-category matches are excluded, also in Trend watch.
-The chosen category, quartile and data year appear beside each article.
+Category, quartile and data year remain in the selection data; they are not
+shown in the message.
 This is a journal-level filter, not an assessment of an individual study.
 
 SCImago's official export rejects automated downloads from Actions (HTTP 403).
@@ -108,7 +116,6 @@ Journal Impact Factor (JIF) is separate from SJR and Cites/Doc. Public journal
 pages sometimes disclose it; Clarivate's complete Journals API requires a
 subscription. impact_factors.json stores verified values with ISSNs, metric year,
 publisher source URL and verification date. Coverage is currently limited to
-Scientific Reports; other journals explicitly show JIF unavailable, meaning no
-verified value in our dataset, not that the journal has no JIF. Add entries only
+Scientific Reports; other journals omit the JIF field when no verified value is in our dataset. Add entries only
 after verifying a publisher or Clarivate source. No inferred or fabricated JIFs.
 Source: https://developer.clarivate.com/apis/wos-journal

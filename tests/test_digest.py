@@ -1,6 +1,6 @@
 import datetime as dt
 import unittest
-from digest import select, render, summarize, TOPICS, PRIORITY_TIERS
+from digest import select, render, summarize, TOPICS, PRIORITY_TIERS, author_countries
 
 
 class DigestTests(unittest.TestCase):
@@ -48,7 +48,7 @@ class DigestTests(unittest.TestCase):
         text = render([('Medical genetics', 'Recent research', paper)] * 5, dt.date(2026, 10, 22))
         visible = html.unescape(re.sub('<[^>]+>', '', text))
         self.assertLessEqual(len(visible.encode('utf-16-le')) // 2, 4096)
-        self.assertEqual(text.count('<b>Abstract highlights:</b>'), 5)
+        self.assertEqual(text.count('>Publication</a>'), 5)
 
     def test_priority_order_is_stable_across_days(self):
         expected = ['Liquid biopsy', 'Medical genetics', 'mRNA vaccines',
@@ -76,6 +76,35 @@ class DigestTests(unittest.TestCase):
         self.assertEqual([topic for topic, _, _ in items],
                          ['Liquid biopsy', 'Medical genetics', 'mRNA vaccines', 'ML in biology', 'Bioinformatics'])
         self.assertTrue(all(label == 'Trend watch' for _, label, _ in items))
+
+    def test_clean_layout_and_optional_jif(self):
+        paper = {'title': 'A study', 'doi': '10.1/test',
+                 'abstractText': 'A finding.',
+                 'authorList': {'author': [{'authorAffiliationDetailsList': {
+                     'authorAffiliation': [{'affiliation': 'Institute, London, UK.'}]}}]}}
+        text = render([('Liquid biopsy', 'Recent research', paper)], dt.date(2026, 10, 22))
+        self.assertTrue(text.startswith('<b>Research digest 22.10.2026</b>'))
+        for unwanted in ('Liquid biopsy', 'Recent research', 'SCImago', 'English',
+                         'Abstract highlights', 'JIF unavailable', 'clinical advice'):
+            self.assertNotIn(unwanted, text)
+        self.assertIn('United Kingdom', text)
+        self.assertNotIn('JIF', text)
+        paper['jif'] = {'value': '4.9', 'year': 2025, 'source': 'https://www.nature.com/srep/about'}
+        self.assertIn('JIF 4.9 (2025)', render([('', '', paper)], dt.date(2026, 10, 22)))
+
+    def test_multiple_author_countries_and_unknown(self):
+        def affiliation(address):
+            return {'authorAffiliationDetailsList': {'authorAffiliation': [{'affiliation': address}]}}
+        paper = {'authorList': {'author': [
+            affiliation('Institute, Boston, MA, USA. Electronic address: name@example.fr'),
+            affiliation('Institute, Berlin, Germany.'),
+            affiliation('Institute, London, United Kingdom.'),
+            affiliation('Another Institute, USA.')]}}
+        self.assertEqual(author_countries(paper), ['Germany', 'United Kingdom', 'United States'])
+        self.assertEqual(author_countries({'journalInfo': {'country': 'France'}}), [])
+        self.assertEqual(author_countries({'firstAuthorAffiliation': 'Unknown Institute name@example.de'}), [])
+        self.assertIn('Countries not reported',
+                      render([('', '', {'title': 'Study', 'doi': '10.1/x'})], dt.date(2026, 10, 22)))
 
 
 if __name__ == '__main__':

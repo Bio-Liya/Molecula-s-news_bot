@@ -124,21 +124,86 @@ def metrics_line(paper):
     return line
 
 
+# Countries are institutional affiliations, not author nationality or publisher country.
+# Only explicit country names at the end of affiliation addresses are recognized.
+COUNTRY_NAMES = (
+    'Afghanistan|Albania|Algeria|Andorra|Angola|Argentina|Armenia|Australia|Austria|'
+    'Azerbaijan|Bahrain|Bangladesh|Belarus|Belgium|Belize|Benin|Bhutan|Bolivia|'
+    'Bosnia and Herzegovina|Botswana|Brazil|Brunei|Bulgaria|Burkina Faso|Burundi|'
+    'Cambodia|Cameroon|Canada|Chile|China|Colombia|Costa Rica|Croatia|Cuba|Cyprus|'
+    'Czechia|Denmark|Dominican Republic|Ecuador|Egypt|El Salvador|Estonia|Ethiopia|'
+    'Fiji|Finland|France|Gabon|Gambia|Germany|Ghana|Greece|Guatemala|Haiti|Honduras|'
+    'Hungary|Iceland|India|Indonesia|Iran|Iraq|Ireland|Israel|Italy|Jamaica|Japan|'
+    'Jordan|Kazakhstan|Kenya|Kuwait|Kyrgyzstan|Laos|Latvia|Lebanon|Libya|Lithuania|'
+    'Luxembourg|Madagascar|Malawi|Malaysia|Maldives|Mali|Malta|Mauritius|Mexico|'
+    'Moldova|Monaco|Mongolia|Montenegro|Morocco|Mozambique|Myanmar|Namibia|Nepal|'
+    'Netherlands|New Zealand|Nicaragua|Niger|Nigeria|North Macedonia|Norway|Oman|'
+    'Pakistan|Palestine|Panama|Paraguay|Peru|Philippines|Poland|Portugal|Qatar|'
+    'Romania|Russia|Rwanda|Saudi Arabia|Senegal|Serbia|Singapore|Slovakia|Slovenia|'
+    'Somalia|South Africa|South Korea|South Sudan|Spain|Sri Lanka|Sudan|Sweden|'
+    'Switzerland|Syria|Taiwan|Tanzania|Thailand|Tunisia|Turkey|Uganda|Ukraine|'
+    'United Arab Emirates|United Kingdom|United States|Uruguay|Uzbekistan|'
+    'Venezuela|Vietnam|Yemen|Zambia|Zimbabwe'
+).split('|')
+COUNTRY_ALIASES = {name.casefold(): name for name in COUNTRY_NAMES}
+COUNTRY_ALIASES.update({
+    'usa': 'United States', 'u.s.a.': 'United States', 'us': 'United States',
+    'united states of america': 'United States',
+    'uk': 'United Kingdom', 'u.k.': 'United Kingdom',
+    'england': 'United Kingdom', 'scotland': 'United Kingdom',
+    'wales': 'United Kingdom', 'northern ireland': 'United Kingdom',
+    'pr china': 'China', 'p.r. china': 'China', 'p. r. china': 'China',
+    "people's republic of china": 'China',
+    'republic of korea': 'South Korea', 'korea': 'South Korea',
+    'russian federation': 'Russia', 'czech republic': 'Czechia',
+    'the netherlands': 'Netherlands', 'türkiye': 'Turkey',
+    'viet nam': 'Vietnam', 'islamic republic of iran': 'Iran',
+})
+
+
+def author_countries(paper):
+    countries = set()
+    authors = paper.get('authorList', {}).get('author', [])
+    affiliations = []
+    for author in authors:
+        affiliations.extend(author.get('authorAffiliationDetailsList', {}).get('authorAffiliation', []))
+    if paper.get('firstAuthorAffiliation'):
+        affiliations.append({'affiliation': paper['firstAuthorAffiliation']})
+    for affiliation in affiliations:
+        explicit = plain_text(affiliation.get('country', '')).strip(' .').casefold()
+        if explicit in COUNTRY_ALIASES:
+            countries.add(COUNTRY_ALIASES[explicit])
+            continue
+        address = plain_text(affiliation.get('affiliation', ''))
+        # Email domains and journal metadata are never used to infer geography.
+        address = re.split(r'\b(?:Electronic address|E-?mail)\s*:', address, flags=re.I)[0]
+        address = re.sub(r'\S+@\S+', '', address).strip(' .;')
+        tail = re.split(r'[,;]', address)[-1].strip(' .').casefold()
+        if tail in COUNTRY_ALIASES:
+            countries.add(COUNTRY_ALIASES[tail])
+    return sorted(countries)
+
+
+def article_links(paper):
+    doi = urllib.parse.quote(paper['doi'], safe='/')
+    parts = [f'<a href="https://doi.org/{doi}">Publication</a>']
+    jif = paper.get('jif')
+    if jif:
+        parts.append(f'<a href="{html.escape(jif["source"], quote=True)}">JIF {html.escape(str(jif["value"]))} ({jif["year"]})</a>')
+    countries = author_countries(paper)
+    parts.append(html.escape(shorten(', '.join(countries), 130)) if countries else 'Countries not reported')
+    return ' · '.join(parts)
+
+
 def render(items, today):
-    lines = [f'<b>Molecula | {today.isoformat()}</b>',
-             'Research digest · English · primary papers · SCImago Q1–Q2', '']
+    lines = [f'<b>Research digest {today.strftime("%d.%m.%Y")}</b>', '']
     if not items:
-        lines.append('No unseen eligible SCImago Q1–Q2 papers found in the past 90 days. No older items repeated.')
-    for topic, label, paper in items:
-        title = shorten(plain_text(paper['title']), 180)
-        doi = urllib.parse.quote(paper['doi'], safe='/')
-        lines.extend([f'<b>{html.escape(topic)} · {label}</b>', html.escape(title),
-                      html.escape(shorten(plain_text(paper.get('journalTitle') or paper.get('journalInfo', {}).get('journal', {}).get('title') or 'Journal'), 80) + ' · ' + str(paper.get('firstPublicationDate', paper.get('pubYear', '')))[:10]),
-                      metrics_line(paper),
-                      '<b>Abstract highlights:</b> ' + html.escape(shorten(summarize(paper), 260)),
-                      f'<a href="https://doi.org/{doi}">Original paper</a>', ''])
-    lines.append('Trend watch uses recent papers (≤90 days), not a measured trend ranking. Research findings are not clinical advice.')
-    return '\n'.join(lines)
+        lines.append('No new papers to share today.')
+    for _, _, paper in items:
+        lines.extend([f'<b>{html.escape(shorten(plain_text(paper["title"]), 240))}</b>',
+                      html.escape(summarize(paper)),
+                      article_links(paper), ''])
+    return '\n'.join(lines).rstrip()
 
 
 def main():
