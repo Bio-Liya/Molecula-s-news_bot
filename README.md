@@ -55,7 +55,10 @@ GitHub's current billing policy. Expected operating cost: 0 RUB/month.
 Recheck billing if changing visibility or runner type.
 
 Delivery history is committed to state.json only after Telegram confirms
-success. Concurrent jobs are serialized and same-day reruns skip delivery.
+success. Concurrent jobs are serialized. Scheduled and manual sends have independent
+same-day delivery slots: a manual test never suppresses the morning digest.
+Each mode skips its own same-day reruns. The legacy last_date field is retained
+for compatibility but does not suppress delivery after this migration.
 If sending succeeds but saving history fails, manual reruns may duplicate the
 message: check Telegram first. Uncertain sends are not automatically retried.
 Public repository schedules may be disabled after 60 days without activity;

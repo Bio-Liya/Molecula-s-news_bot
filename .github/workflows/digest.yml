@@ -38,9 +38,14 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SEND: ${{ github.event_name == 'schedule' || inputs.send }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           if [ "$SEND" = "true" ]; then
-            python digest.py
+            if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              python digest.py --manual
+            else
+              python digest.py
+            fi
           else
             python digest.py --dry-run
           fi

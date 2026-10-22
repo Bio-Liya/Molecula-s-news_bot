@@ -144,11 +144,13 @@ def render(items, today):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--manual', action='store_true', help='Manual delivery; does not consume the scheduled daily slot')
     args = parser.parse_args()
     today = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=3)).date()
     state = json.loads(STATE.read_text()) if STATE.exists() else {'seen': [], 'last_date': None}
-    if state['last_date'] == str(today) and not args.dry_run:
-        print('Already sent today.')
+    delivery_key = 'last_manual_date' if args.manual else 'last_scheduled_date'
+    if state.get(delivery_key) == str(today) and not args.dry_run:
+        print('Already sent today for this delivery mode.')
         return
     items = select(search, state['seen'], today, load_index())
     message = render(items, today)
@@ -169,8 +171,9 @@ def main():
         # Do not print a request URL containing the bot token. No automatic send retries:
         # a timeout can mean Telegram accepted the message already.
         raise SystemExit('Telegram delivery failed or is uncertain; inspect chat before retrying.') from None
-    STATE.write_text(json.dumps({'last_date': str(today),
-                                 'seen': (state['seen'] + [key(p) for _, _, p in items])[-2000:]}, indent=2))
+    state[delivery_key] = str(today)
+    state['seen'] = (state['seen'] + [key(p) for _, _, p in items])[-2000:]
+    STATE.write_text(json.dumps(state, indent=2))
     print(f'Sent {len(items)} papers.')
 
 
